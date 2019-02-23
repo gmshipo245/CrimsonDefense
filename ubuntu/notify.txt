@@ -1,0 +1,4 @@
+IP="$(echo $SSH_CONNECTION | cut -d " " -f 1)"
+NOW=$(date +"%e %b %Y, %a %r")
+
+echo 'Someone from '$IP' logged into '$USER' on '$NOW'.' | wall

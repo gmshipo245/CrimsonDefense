@@ -1,0 +1,6 @@
+alias c="clear"
+alias status="git status"
+alias commit="git commit"
+alias pull="git pull"
+alias push="git push"
+alias killssh="/home/sysadmin/repo/scripts/killssh.sh"

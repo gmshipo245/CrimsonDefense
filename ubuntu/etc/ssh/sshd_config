@@ -5,7 +5,7 @@
 Port 22
 # Use these options to restrict which interfaces/protocols sshd will bind to
 #ListenAddress ::
-#ListenAddress 0.0.0.0
+#ListenAddress 10.10.10.10
 Protocol 2
 # HostKeys for protocol version 2
 HostKey /etc/ssh/ssh_host_rsa_key
@@ -23,8 +23,8 @@ SyslogFacility AUTH
 LogLevel INFO
 
 # Authentication:
-LoginGraceTime 120
-PermitRootLogin yes
+LoginGraceTime 30
+PermitRootLogin no
 StrictModes yes
 
 RSAAuthentication yes
@@ -45,10 +45,10 @@ PermitEmptyPasswords no
 
 # Change to yes to enable challenge-response passwords (beware issues with
 # some PAM modules and threads)
-ChallengeResponseAuthentication no
+ChallengeResponseAuthentication yes
 
 # Change to no to disable tunnelled clear text passwords
-#PasswordAuthentication yes
+PasswordAuthentication yes
 
 # Kerberos options
 #KerberosAuthentication no
@@ -65,7 +65,7 @@ X11DisplayOffset 10
 PrintMotd no
 PrintLastLog yes
 TCPKeepAlive yes
-#UseLogin no
+UseLogin no
 
 #MaxStartups 10:30:60
 #Banner /etc/issue.net
