@@ -1,0 +1,617 @@
+l > _ > > t ‘
+'IL-* =":JI' “I'JJJ CJV/Hg'jN'IK 9]?»ng golgruyru; Q
+
+ 
+
+How to secure an Ubuntu 12.04 LTS server — Part 1 The Basics
+
+Submitted by The Fan Club on Thu, 2012—05—17 13:06
+
+ 
+
+This guide is based on various community forum posts and webpages. Special thanks to all. All comments
+and improvements are very welcome as this is purely a personal experimental project at this point and must
+
+be considered a work in progress.
+
+This guide is intended as a relatively easy step by step guide to:
+
+Harden the security on an Ubuntu 12.04 LTS server by installing and configuring the following:
+
+Install and configure Firewall — ufw
+
+Secure shared memory — fstab
+
+SSH — Key based login, disable root login and Change port
+
+Apache SSL — Disable SSL V3 support
+
+Protect su by limiting access only to admin group
+
+Harden network with sysctl settings
+
+Disable Open DNS Recursion and Remove Version Info — Bind9 DNS
+Prevent IP Spoofing
+
+Harden PHP for security
+
+Restrict Apache Information Leakage
+
+>990>199¥P°NE
+
+H
+S3
+
+11. Install and configure Apache application firewall — ModSecurity
+12. Protect from DDOS (Denial of Service) attacks with ModEvasive
+13. Sean logs and ban suspicious hosts — DenyHosts and FailZBan
+14. Intrusion Detection — PSAD
+15. Check for RootKits — RKHunter and CHKROOtKit
+16. Sean open Ports — Nmap
+17. Analyse system LOG files — LogWatch
+18. SELinuX — Apparmor
+19. Audit your system security — Tiger
+
+Ileqtdrenlenta
+
+Ubuntu 12.04 LTS or later server with a standard LAMP stack installed.
+
+ 
+
+1. Firewall - UFW
+
+A good place to start is to install a Firewall.
+
+UFW — Uncomplicated Firewall is a basic firewall that works very well and easy to configure with its
+Firewall configuration tool — gufw, or use Shorewall, fwbuilder, or Firestarter.
+
+Use Firestarter GUI to configure your firewall or refer to the Ubuntu Server Guide, UFW manual
+
+p_ag§_(mp_:/_/manp_ages.ubuntu.com/manp_ag§/Drecise /en/man8 /ufw.8.html) or the Ubuntu
+
+Install UFW and enable, open a terminal window and enter :
+
+sudo apt—get install ufw
+
+Allow SSH and Http services.
+
+sudo ufw allow ssh
+sudo ufw allow http
+
+Enable the firewall.
+
+sudo ufw enable
+
+Check the status of the firewall.
+
+sudo ufw status verbose
+
+2. Secure shared memory.
+
+Shared memory can be used in an attack against a running service. Modify /etc/fstab to make it more
+secure.
+
+Open a Terminal Window and enter the following :
+
+sudo vi /etc/fstab
+
+Add the following line and save. You will need to reboot for this setting to take effect :
+Note : This only is works in Ubuntu 12.04 — For later Ubuntu versions
+replace /dev/shm with /run/shm
+
+Save and Reboot when done
+
+tmpfs /dev/shm tmpfs defaults,noexec,nosuid 0 0
+
+3. SSH Hardening - key based login, disable root login and change port.
+
+If you have to use password authentication, the easiest way to secure SSH is to disable root login and
+Change the SSH port to something different than the standard port 22.
+
+Before disabling the root login create a new SSH user and make sure the user belongs to the admin
+group (see 5qu 4. below regarding the admin group).
+
+if you Change the SSH port keep the port number below 1024 as these are priviledged ports that can
+only be opened by root or processes running as root.
+
+If you Change the SSH port also open the new port you have Chosen on the firewall and Close port 22.
+
+Open a Terminal Window and enter :
+
+sudo vi /etc/ssh/sshd_config
+
+Change or add the following and save.
+
+Port <ENTER YOUR PORT>
+Protocol 2
+PermitRootLogin no
+DebianBanner no
+
+Restart SSH server, open a Terminal Window and enter :
+
+sudo /etc/init.d/ssh restart
+
+4. Apache SSL Hardening - disable SSL v3 support.
+
+0 The SSL V3 protocol has been proven to be insecure.
+0 We will disable Apache support for the protocol and force the use of the newer protocols.
+
+0 Open a Terminal Window and enter :
+
+sudo vi /etc/apache2/mods—available/ssl.conf
+
+0 Change this line from :
+
+SSLProtocol all —SSLv2
+
+0 To the following and save.
+
+SSLProtocol all —SSLv2 —SSLv3
+
+0 Restart the Apache server, open a Terminal Window and enter :
+
+sudo /etc/init.d/apache2 restart
+
+5. Protect su by limiting access only to admin group.
+
+0 To limit the use of su by admin users only we need to create an admin group, then add users and limit
+the use of su to the admin group.
+
+0 Add a admin group to the system and add your own admin username to the group by replacing <YOUR
+ADMIN USERNAME> below with your admin username.
+
+0 Open a terminal window and enter:
+
+sudo groupadd admin
+sudo usermod —a —G admin <YOUR ADMIN USERNAME>
+sudo dpkg—statoverride ——update ——add root admin 4750 /bin/su
+
+6. Harden network with sysctl settings.
+
+0 The /etc/sysctl.c0nf file contain all the sysctl settings.
+0 Prevent source routing of incoming packets and log malformed lP's enter the following in a terminal
+
+window:
+
+sudo vi /etc/sysctl.conf
+
+0 Edit the /etc/sysctl.conf file and un—comment or add the following lines :
+
+# IP Spoofing protection
+net.ipv4.conf.all.rp_filter = 1
+net.ipv4.conf.default.rp_filter = 1
+
+# Ignore ICMP broadcast requests
+net.ipv4.icmp_echo_ignore_broadcasts = 1
+
+# Disable source packet routing
+
+net.ipv4.conf.all.accept_source_route 0
+net.ipv6.conf.all.accept_source_route 0
+net.ipv4.conf.default.accept_source_route = 0
+net.ipv6.conf.default.accept_source_route
+
+II
+S
+
+# Ignore send redirects
+net.ipv4.conf.all.send_redirects = 0
+net.ipv4.conf.default.send_redirects = 0
+
+# Block SYN attacks
+net.ipv4.tcp_syncookies = 1
+net.ipv4.tcp_max_syn_backlog = 2048
+net.ipv4.tcp_synack_retries = 2
+net.ipv4.tcp_syn_retries = 5
+
+# Log Martians
+net.ipv4.conf.all.log_martians = 1
+net.ipv4.icmp_ignore_bogus_error_responses = 1
+
+# Ignore ICMP redirects
+
+net.ipv4.conf.all.accept_redirects 0
+net.ipv6.conf.all.accept_redirects 0
+net.ipv4.conf.default.accept_redirects = 0
+net.ipv6.conf.default.accept_redirects
+
+II
+S
+
+# Ignore Directed pings
+net.ipv4.icmp_echo_ignore_all = 1
+
+0 To reload sysctl with the latest changes, enter:
+
+sudo sysctl —p
+
+7. Disable Open DNS Recursion and Remove Version Info - BIND DNS
+
+Server.
+
+0 Open a Terminal and enter the following :
+
+sudo vi /etc/bind/named.conf.options
+
+0 Add the following to the Options section :
+
+recursion no;
+version ”Not Disclosed”;
+
+0 Restart BIND DNS server. Open a Terminal and enter the following :
+
+sudo /etc/init.d/bind9 restart
+
+8. Prevent IP Spoofing.
+
+0 Open a Terminal and enter the following :
+
+sudo vi /etc/host.conf
+
+0 Add or edit the following lines :
+
+order bind,hosts
+nospoof on
+
+9. Harden PHP for security.
+0 Edit the php.ini file :
+
+sudo vi /etc/php5/apache2/php.ini
+
+0 Add or edit the following lines an save :
+
+disable_functions = exec,system,shell_exec,passthru
+register_globals = Off
+
+expose_php = Off
+
+display_errors = Off
+
+track_errors = Off
+html_errors = Off
+magic_quotes_gpc = Off
+
+0 Restart Apache server. Open a Terminal and enter the following :
+
+sudo /etc/init.d/apache2 restart
+
+10. Restrict Apache Information Leakage.
+
+0 Edit the Apache2 configuration security file :
+
+sudo vi /etc/apache2/conf.d/security
+
+0 Add or edit the following lines and save :
+
+ServerTokens Prod
+ServerSignature Off
+TraceEnable Off
+Header unset ETag
+FileETag None
+
+0 Restart Apache server. Open a Terminal and enter the following :
+
+sudo /etc/init.d/apache2 restart
+
+11. Web Application Firewall - ModSecurity.
+
+0 See : How to install anache2 mod securitv and mod evasive on Ubuntu 12.04 LTS server
+
+12. Protect from DDOS (Denial of Service) attacks - ModEvasive
+
+0 See : How to install anache2 mod securitv and mod evasive on Ubuntu 12.04 LTS server
+
+13. Scan logs and ban suspicious hosts - DenyHosts and FaiIZBan.
+
+ 
+
+attacks by adding entries to /etC/hosts.deny. DenyHosts will also inform LinuX administrators about
+offending hosts, attacked users and suspicious logins.
+
+0 Open a Terminal and enter the following :
+
+sudo apt—get install denyhosts
+
+After installation edit the configuration file /etc/denyhosts.conf and Change the email, and other
+settings as required.
+
+To edit the admin email settings open a terminal window and enter:
+
+sudo vi /etc/denyhosts.conf
+
+Change the following values as required on your server :
+
+ADMIN_EMAIL = root@localhost
+
+SMTP_HOST = localhost
+
+SMTP_PORT = 25
+
+#SMTP_USERNAME=foo
+
+#SMTP_PASSWORD=bar
+
+SMTP_FROM = DenyHosts nobody@localhost
+#SYSLOG_REPORT=YES
+
+Failean (httD://www.fai12ban.org/wiki/index.ohn/Main Pagg)_is more advanced than DenyHosts as it
+extends the log monitoring to other services including SSH, Apache, Courier, FTP, and more.
+Failean scans log files and bans IPs that show the malicious signs —— too many password failures,
+seeking for exploits, etc.
+
+Generally Fail2Ban then used to update firewall rules to reject the IP addresses for a specified amount of
+time, although any arbitrary other action could also be configured.
+
+Out of the box Fail2Ban comes with filters for various services (apache, courier, ftp, ssh, etc).
+
+Open a Terminal and enter the following :
+
+sudo apt—get install fail2ban
+
+After installation edit the configuration file /etc/fai12ban/jail.local and create the filter rules as
+required.
+
+To edit the settings open a terminal window and enter:
+
+sudo vi /etc/fail2ban/jail.conf
+
+Activate all the services you would like fail2ban to monitor by Changing enabled : false to enabled :
+true
+For example if you would like to enable the SSH monitoring and banning jail, find the line below and
+
+change enabled from false to true. Thats it.
+
+[ssh]
+
+enabled = true
+port = ssh
+filter = sshd
+
+logpath = /var/log/auth.log
+maxretry = 3
+
+If you have selected a non-standard SSH port in step 3 then you need to Change the port setting in
+fail2ban from ssh which by default is port 22, to your new port number, for example if you have Chosen
+1234 then port = 1234
+
+[ssh]
+
+enabled = true
+
+port = <ENTER YOUR SSH PORT NUMBER HERE>
+filter = sshd
+
+logpath = /var/log/auth.log
+maxretry = 3
+
+If you would like to receive emails from FailZBan if hosts are banned Change the following line to your
+
+email address.
+
+destemail = root@localhost
+
+and Change the following line from :
+
+action %(action_)s
+
+to:
+
+action %(action_mwl)s
+
+You can also create rule filters for the various services that you would like fail2ban to monitor that is
+
+not supplied by default.
+
+sudo vi /etc/fail2ban/jail.local
+
+Good instructions on how to configure fail2ban and create the various filters can be found on
+
+HowtoForgQ (httn://www.howtoforge.com/) — click here for an example
+
+When done with the configuration of Fail2Ban restart the service with :
+
+sudo /etc/init.d/fail2ban restart
+
+You can also Check the status with.
+
+sudo fail2ban—client status
+
+14. Intrusion Detection - PSAD.
+
+Cipherdvne PSAD (http://www.cipherdvne.org/psad/_)_is a collection of three lightweight system daemons
+that run on LinuX machines and analyze iptables log messages to detect port scans and other suspicious
+traffic.
+
+Currently version 2.1 causes errors during install on Ubuntu 12.04, but apparently does work. Version 2.2
+resolves these issues but is not yet available on the Ubuntu software repositories. It is recommended to
+manually compile and install version 2.2 from the source files available on the Qpe_rdyne website
+
+(httD: / /WWW.CiDhel‘dVl’le.Ol‘2' /Dsad/download/_)_.
+
+To install the latest version from the source files follow these instruction : How to install PSAD
+Intrusion Detection on Ubuntu 12.04 LTS server
+
+OR install the older version from the Ubuntu software repositories, open a Terminal and enter the
+
+following :
+
+sudo apt—get install psad
+
+Then for basic configuration see How to install PSAD Intrusion Detection on Ubuntu 12.04 LTS
+
+server and follow from step 2:
+
+15. Check for rootkits - RKHunter and CHKRootKit.
+
+Both RKHunter_(http://rkhunter.sourceforge.net/_)_and CHKROOtkit (http://www.chkrootkit.org/_)_basically
+do the same thing — Check your system for rootkits (http://en.wikipedia.org/wiki/Rootkit)_. No harm in
+using both.
+
+Open a Terminal and enter the following :
+
+sudo apt—get install rkhunter chkrootkit
+
+To run chkrootkit open a terminal window and enter :
+
+sudo chkrootkit
+
+0 To update and run RKHunter. Open a Terminal and enter the following :
+
+sudo rkhunter ——update
+sudo rkhunter ——propupd
+sudo rkhunter ——check
+
+16. Scan open ports - Nmap.
+
+0 Nmap_(mp_:/_/nma1mg/_)_("Network Mapper") is a free and open source utility for network discovery and
+security auditing.
+
+0 Open a Terminal and enter the following :
+
+sudo apt—get install nmap
+
+0 Scan your system for open ports with :
+
+nmap —v —sT localhost
+
+0 SYN scanning with the following :
+
+sudo nmap —v —sS localhost
+
+17. Analyse system LOG files - LogWatch.
+
+parses through your system's logs and creates a report analyzing areas that you specify. Logwatch is easy
+to use and will work right out of the package on most systems.
+
+0 Open a Terminal and enter the following :
+
+sudo apt—get install logwatch libdate—manip—perl
+
+0 To View logwatch output use less :
+
+sudo logwatch | less
+
+To email a logwatch report for the past 7 days to an email address, enter the following and replace
+
+mail@domain.c0m with the required email. :
+
+sudo logwatch ——mailto mail@domain.com ——output mail ——format html ——
+range 'between —7 days and today'
+
+18. SELinux - Apparmor.
+
+National Securitv Agency (httpz//www.nsa.gov/research/selinux/index.shtml)_(NSA) has taken LinuX to
+the next level with the introduction of Security—Enhanced Linux (SELinux). SELinux takes the existing
+GNU/LinuX operating system and extends it with kernel and user—space modifications to make it bullet—
+proof.
+
+More information can be found here. Ubuntu Server Guide - Apparmor
+
+It is installed by default since Ubuntu 7.04.
+
+Open a Terminal and enter the following :
+
+sudo apt—get install apparmor apparmor—profiles
+
+Check to see if things are running :
+
+sudo apparmor_status
+
+19. Audit your system security - Tiger.
+
+ng_(ﬂp_:/_/www.nongnu.org/LiggLLis a security tool that can be use both as a security audit and
+
+ 
+
+intrusion detection system.
+
+Open a Terminal and enter the following :
+
+sudo apt—get install tiger
+
+To run tiger enter :
+
+sudo tiger
+
+All Tiger output can be found in the /var/log/tiger
+
+To View the tiger security reports, open a Terminal and enter the following :
+
+sudo less /var/log/tiger/security.report.*
+
+Ubuntu12.04 Ubuntu Security ufw SSH svsctl DNS IP Spoofing PHP
+Security ModSecurity ModEvasive Deanosts FailZBan PSAD RKHunter NMap QgWatch Apparmor
+
+Comments
+
+Why do you suggest "magic
+Submitted by n‘epb (bot bmﬂed) on Sat, 2073-03-09 77:29
+
+Why do you suggest "magic_quotes_gpc On" P When you read php.ini comments, it is written that
+
+the Off value is for production. Thanks
+
+Thank you for pointing that
+Submitted by Tbe Em Club on Sat, 2073-03-09 74:25
+
+Thank you for pointing that out — It should be off, as this feature has been DEPRECATED as of
+PHP 5.3.0 and REMOVED as of PHP 5.4.0. (see :
+http: / /www.php.net/n1anual/en/ security.n1agicquotes.php)
+
+This is a nice tutorial,
+Submitted by dmm‘mé (bot bmﬂed) 0% F77, 2073-03-22 77:03
+
+This is a nice tutorial, quick and easy, less explained, thanks for that! What imissed here also is the
+security of email services like postfiX and generally a anti Virus tool. I mean use of clamav, postgrey
+and so on. It would be nice if you spent time to write a part for that ;—) One that i believe is also
+required for good security is to install suhosin for php. It would be nice if you add it to this guide,
+and how to configure it with minimal settings. Also speak about disabling/enabling modules in php
+that are mostly not used, or modules which can be turned off and on for special applications.
+Another thing i ever see is enabled mods in apache that nobody uses (which can be simply disabled).
+It would be nice if you speak about what is really needed, and how to disable/enable unused ones.
+ModEvasive is also not really needed in favour of ModSecurity, which can also do DDOS prevention
+for you. I did not test the rules of OWASP CRS yet since they are stated as experimental, but they
+look clear to me. Take a look to file "modsecurity_crs_11_dos_protection". I use similar ones in
+
+production environment...
+
+ 
+
+[ Show all comments J
+
+ 
+
+related content
+
+Q How to secure an Ubuntu 12.04 LTS server - Part 2 The GUI installer script
+
+ 
+
+How to secure an Ubuntu 16.04 LTS server - Part 1 The Basics
+
+ 
+
+How to install anache2 mod securitv and mod evasive on Ubuntu 12.04 LTS server
+
+ 
+
+How to disable ModSecuritV rules for Drupal and Wordpress
+
+ 
+
+How to install PSAD Intrusion Detection on Ubuntu 16.04 LTS server
+
+®E®G
+
+ 
+
+' l’l’lOl'C '
+
+The Fan Club © 2001-2019. All Rights Reserved.
+
+The material on this site may not be reproduced, distributed, transmitted, cached or otherwise used, except
+
+with the prior written permission of The Fan Club.
+
+ 
+

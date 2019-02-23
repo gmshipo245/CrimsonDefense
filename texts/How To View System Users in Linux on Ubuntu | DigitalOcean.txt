@@ -1,0 +1,146 @@
+f.) DigitalOcean
+
+|‘_T Subscribe
+
+How To View System Users in Linux on Ubuntu
+
+Posted September 5, 2013 © 424.1k LINUX BASICS UBUNTU
+
+By: Justin Ellingwood
+
+Introduction
+
+A fundamental part of system administration is configuring and managing users and groups.
+Part of this task involves monitoring the log in capabilities of all system entities.
+
+In this guide, we will introduce the basic ideas behind user management and authentication
+logging.
+
+We will be exploring these concepts on an Ubuntu 12.04 VPS, but you can follow along on
+any up—to—date Linux distribution.
+
+Part one will cover how to view system users and find out who is logged into the system.
+
+How To View Available Users on a VPS
+
+Every user on a Linux system, whether created as an account for a real human being or
+associated with a particular service or system function, is stored in a file called
+"letc/passwd".
+
+The "/etc/passwd" file contains information about the users on the system. Each line
+describes a distinct user.
+
+Have a look by entering:
+
+less /etc/passwd
+
+root:x:0:0:root:/root:/bin/bash
+daemonzle:lzdaemonz/usr/sbin:/bin/sh
+bin:x:2:2:bin:/bin:/bin/sh
+sys:x:3:3:sys:/dev:/bin/sh
+sync:x:4:65534zsyncz/bin:/bin/sync
+games:x:5:60:games:/usr/games:/bin/sh
+
+Each line is broken up into fields. These fields are delimited by the colon (2) character.
+
+The only field that we are really interested in at the moment is the first one. Each is an
+independent username.
+
+We can get this list without wading through the entire "/etc/passwd" by typing:
+
+cut —d : —f l /etc/passwd
+
+root
+daemon
+bin
+sys
+sync
+games
+
+You probably recognize "root" as the administrative user. Towards the end, you may see the
+user you are logged in as.
+
+In between, you will probably see a number of other users whose usage seems at least
+somewhat clear. For instance, "www-data" is configured as the owner of web server
+processes.
+
+This is done to separate functional privileges. That way, if an account is compromised or
+misused, the affect will be isolated.
+
+You can learn more about the fields in "/etc/passwd" by clicking here.
+
+ 
+
+How To View Available Groups on a VPS
+
+The corresponding file for discovering system groups is "letc/group".
+
+We can see the whole file by typing:
+
+less /etc/group
+
+root:x:O:
+daemonzle:
+bin:x:
+
+sys:
+
+01th
+
+x
+admzx:
+ttyzx
+
+disk:x:6:
+
+You can see that many of the group names mirror the users we discovered on our system.
+This is part of a configuration scheme called "user private groups", or UPG.
+
+User private groups create a private group for each user and set that group as the primary
+group. The umask is then changed from 022 to 002.
+
+This allows for more flexibility in shared directories by setting a flag called setgid, which
+gives files inside the directory the same group owner as the directory itself. This
+configuration is useful, but outside of the scope of this article.
+
+Once again, we can pare down the information from the "/etc/group" file by using the cut
+command:
+
+cut —d : —f l /etc/group
+
+root
+
+daemon
+
+bin
+8y8
+adm
+tty
+disk
+
+The output will be a list of each group on the system, one per line.
+
+How To Find Which Users Are Logged In
+
+Many times, it will be more useful to find out which users are active on your system.
+
+The "w" command is a simple way to list all of the currently logged in users, their log in
+time, and what the command they are currently using:
+
+19:37:15 up 5:48, 2 users, load average: 0.33, 0.10, 0.07
+
+USER TTY FROM LOGIN@ IDLE JCPU PCPU WHAT
+root pt8/0 rrcs—72—43—115—1 19:15 38.008 0.338 0.338 —ba8h
+demoer pt8/1 rrcs—72—43—115—1 19:37 0.008 0.478 0.008 w
+
+The first line contains system uptime information. The following lines describe who is
+logged in.
+
+An alternative that provides similar information is "who":
+
+who
+root pt8/0 2013—09—05 19:15 (rrcs—72—43—115—186.nyc.biz.rr.com)
+demoer pt8/1 2013—09—05 19:37 (rrcs—72—43—115—186.nyc.biz.rr.com)
+
+Conclusion
+

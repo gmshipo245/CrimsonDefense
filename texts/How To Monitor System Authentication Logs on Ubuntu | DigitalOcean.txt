@@ -1,0 +1,103 @@
+f.) DigitalOcean
+
+|‘_T Subscribe
+
+How To Monitor System Authentication Logs on
+Ubuntu
+
+Posted September5,2013 ©175.5k SECURITY SYSTEMTOOLS MONITORING UBUNTU
+
+By: Justin Ellingwood
+
+How To Monitor System Logins
+
+A fundamental component of authentication management is monitoring the system after
+you have configured your users.
+
+Luckily, modern Linux systems log all authentication attempts in a discrete file. This is
+located at "/var/log/auth.log":
+
+sudo less /var/1og/auth.1og
+
+May 3 18:20:45 localhost sshd[585]: Server listening on 0.0.0.0 port 22.
+May 3 18:20:45 localhost sshd[585]: Server listening on :: port 22.
+
+May 3 18:23:56 localhost login[673]: pam_unix(login:session): session
+opened fo
+
+r user root by LOGIN(uid=0)
+
+May 3 18:23:56 localhost login[714]: ROOT LOGIN on '/dev/tty1'
+
+Sep 5 13:49:07 localhost sshd[358]: Received signal 15; terminating.
+Sep 5 13:49:07 localhost sshd[565]: Server listening on 0.0.0.0 port 22.
+Sep 5 13:49:07 localhost sshd[565]: Server listening on :: port 22.
+
+How To Use the "last" Command
+
+Usually, you will only be interested in the most recent login attempts. You can see these
+with the "last" tool:
+
+last
+
+demoer pts/l rrcs—72—43—115—1 Thu Sep 5 19:37 still logged in
+root pts/l rrcs—72—43—115—1 Thu Sep 5 19:37 — 19:37 (00:00)
+root pts/O rrcs—72—43—115—1 Thu Sep 5 19:15 still logged in
+root pts/O rrcs—72—43—115—1 Thu Sep 5 18:35 — 18:44 (00:08)
+root pts/O rrcs—72—43—115—1 Thu Sep 5 18:20 — 18:20 (00:00)
+demoer pts/O rrcs—72—43—115—1 Thu Sep 5 18:19 — 18:19 (00:00)
+
+This gives a formated version of the "letc/log/wtmp" file.
+
+As you can see, in the first and third line, it shows that the user is still logged into the
+system. Otherwise, the total time logged into the system during a session is given by a set
+of hyphen—separated values.
+
+How To Use the "lastlog" Command
+
+If you would like to look at this situation from a different angle, you can view the last time
+each user on the system logged in.
+
+This information is provided by accessing the "/etc/log/lastlog" file. It is then sorted
+according to the entries in the "/etc/passwd" file:
+
+lastlog
+
+Username Port From Latest
+
+root pts/l rrcs—72—43—115—1 Thu Sep 5 19:37:02 +0000 2013
+daemon **Never logged in**
+
+bin **Never logged in**
+
+sys **Never logged in**
+
+sync **Never logged in**
+
+games * *Never logged in* *
+
+You can see the latest login time of every user on the system.
+
+Notice how the system users will almost all have "**Never logged in**". We saw earlier how
+these accounts do not have password authentication set up, so this is the expected value.
+
+Conclusion
+
+User authentication on Linux is a relatively flexible area of system management. There are
+many ways of accomplishing the same objective with very simple tools.
+
+It is important to understand where the system keeps information about logins so that you
+can monitor your server for changes that do not reflect your usage.
+
+Authentication, Part1 — How To View System Users in Linux on Ubuntu
+
+ 
+
+Authentication, Part 2 — How To Restrict Log In Capabilities of Users on Ubuntu
+
+ 
+
+Authentication, Part 3 — How To Monitor System Authentication Logs on Ubuntu
+
+By: Justin Ellingwood
+

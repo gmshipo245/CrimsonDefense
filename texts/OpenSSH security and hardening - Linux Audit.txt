@@ -1,0 +1,477 @@
+What will be covered?
+We will be covering both the server and client
+configuration. The configuration syntax and settings are
+based on OpenSSH 7.x. The examples should be working
+for most Linux distributions like CentOS, Debian, Ubuntu,
+and RHEL. You can expect this to be also the case for
+FreeBSD, OpenBSD, and other systems that use
+OpenSSH. When in doubt, consult your man page. If you
+discovered an error or exception, let it know via the
+comments. Your feedback is welcome.
+After reading this article, you will know:
+Where the client settings and server settings are
+stored
+How to see the active and default settings
+How to test your configuration settings
+Make an informed decision on how to secure SSH
+Which tools can help audit SSH and apply best
+practices
+
+SSH basics
+SSH has two parts: the server daemon (sshd) that runs
+on a system and the client (ssh) used to connect to the
+server. Typically administration is done by using an SSH
+client from a workstation. If you are on Windows, then
+often you will be using something like Putty.
+When it comes to the security of the SSH configuration,
+it is the server part that is the most interesting. For
+example, is that the server can decide if normal
+password based logins are allowed or denied. Even if the
+client has a preference, it is the server to make the final
+call. The server configuration file is located
+at /etc/ssh/sshd_config.
+The client configuration settings can be found in
+/etc/ssh/ssh_config (system wide) or ~/.ssh/config
+(per user). Settings can also be specified during the
+
+connection by providing a command-line option.
+Before we start making changes, letʼs start with some
+tips to do it right.
+
+Deployment tips
+Do (not) use best practices
+The web is full of blogs and guides that state they are
+using so-called best practices. A best practice is an
+effective and good approach and typically agreed on by
+the experts and by consensus. Unfortunately, many of
+the blogs and articles are simple copies from other blogs
+and without the extensive research. So I strongly suggest
+to look up some background of the blog and author first.
+If you see just configuration settings without a good
+explanation, be careful with applying such changes.
+Some are outdated or simply not relevant. What is the
+purpose of setting some value when it is already the
+default or even removed? So whatever you do, apply
+critical thinking and donʼt make assumptions. So use
+best practices, but always test your changes.
+
+Check the status of SSH
+Is this the first time you will change your SSH
+configuration? Check the status of the SSH daemon and
+see if the related service is started on boot. When using
+a distribution with systemd, make sure the daemon is
+running and enabled.
+
+systemctl status ssh.service
+
+Note: on some Linux distributions the service is named
+sshd.service.
+The output should contain the enabled value.
+
+Loaded: loaded (/lib/systemd/system/ssh.service;
+enabled; vendor preset: enabled)
+
+To see if SSH is running, look at the next line.
+
+Active: active (running) since Mon 2018-06-04
+17g18g33 CEST; 1 months 2 days ago
+
+Use the SSH configuration test
+If you make changes to your SSH configuration, it makes
+sense to restart the service. I strongly recommend to
+always check your configuration (sshd_config) first. This
+can be done by using the test mode flag. This additional
+step ensures the syntax and options are correct before
+you end up with a nonfunctioning service.
+
+sshd -t
+
+This command should not return any text or errors. Here
+is an example when something does not look good:
+
+Make sure to test your settings first.
+
+Making changes to a remote system
+Are you connected to the system with SSH and making
+changes to its configuration? Instead of restarting,
+consider sending a reload command to the running SSH
+daemon. This decreases the chance that you lose your
+connection and canʼt reconnect.
+For systems using systemd, use systemctl to reload the
+SSH service.
+
+systemctl reload ssh.service
+
+The alternative is to manually send a SIGHUP to the SSH
+daemon. Do not to send this to any of the child
+processes, or you will be disconnected.
+
+kill -HUP 1234
+
+Another option is to temporarily run another SSH process
+on another port, without becoming a daemon process.
+Specify the full path and use -D together with the p for the port number. Then ensure that you can access
+
+the temporary connection, especially if you are using a
+firewall with traffic filtering.
+
+/usr/sbin/sshd -D -p 2222
+
+Use CTRL + C to stop the process after you are done.
+
+Deploy in small steps
+While it makes sense to do a full deployment of your new
+SSH configuration to all systems, you might want to be
+careful. One example is that some older SSH clients canʼt
+use the newer key types. So have a look at the oldest
+Linux distributions that are used to get an idea on
+compatibility issues.
+
+Show active SSH connections
+Before applying changes or restarting the daemon,
+check for any active SSH connections. This can be done
+with the ss tool.
+
+ss -n -o state established '( dport = :22
+or sport = :22 )'
+
+Any established TCP connection will be displayed. By
+using both dport and sport, we can confirm what
+connections are active in both directions.
+
+Securing the SSH server
+configuration
+Preparations
+Before we start making changes to our configuration,
+letʼs make a backup.
+
+cp /etc/ssh/sshd_config
+/root/sshd_config
+
+After that is done, it is good to know that each OpenSSH
+version has its own defaults. New features may have
+been added, older settings may have disappeared. To
+know if a specific setting is set, donʼt rely on the
+configuration file. Instead, call the SSH daemon with the
+extended test mode flag -T to show all details.
+
+sshd -T
+
+The output may look something like this:
+
+Show active and default settings of the OpenSSH daemon
+
+Note: configuration settings and values are displayed
+with lowercase characters.
+
+SSH security settings
+Use of X11Forwarding
+The display server on the client might have a higher
+exposure to be attacked with X11 traffic forwarded. If
+forwarding of X11 traffic is not needed, disable it:
+
+X11Forwarding no
+
+Why disabling X11Forwarding matters: the X11
+protocol was never built with security in mind. As it
+opens up channel back to the client, the server could
+send malicious commands back to the client. To protect
+clients, disable X11Forwarding when it is not needed.
+
+Disable rhosts
+While not common anymore, rhosts was a weak method
+to authenticate systems. It defines a way to trust another
+system simply by its IP address. By default, the use of
+rhosts is already disabled. Make sure to check if it really
+is.
+
+IgnoreRhosts yes
+
+DNS hostname checking
+By default, the SSH server can check if the client
+connecting maps back to the same combination of
+hostname and IP address. Use the option UseDNS to
+perform this basic check as an additional safeguard.
+
+UseDNS yes
+
+Note: this option may not work properly in all situations.
+It could result in an additional delay, as the daemon is
+waiting for a timeout during the initial connection. Only
+use this when you are sure your internal DNS is properly
+configured.
+
+Disable empty passwords
+Accounts should be protected and users should be
+accountable. For this reason, the usage of empty
+passwords should not be allowed. This can be disabled
+with the PermitEmptyPasswords option, which is the
+default.
+
+PermitEmptyPasswords no
+
+If you see this option enabled, then check which user
+accounts have no password set.
+
+Maximum authentication attempts
+To protect against brute-force attacks on the password
+of a user, limit the number of attempts. This can be done
+with the MaxAuthTries setting.
+
+MaxAuthTries 3
+
+Also enable monitoring for authentication failures, which
+starts at the half the number of maximum attempts. Use
+these authentication failures together with your SIEM
+solution, or forward them to your security administrator.
+The SSH server can be configured to be used together
+with PAM or pluggable authentication modules. By using
+a set of rules, part of the authentication stack, the
+
+number of failed logins can be used to block a particular
+user. Another option is to define a period to lock the
+account when this number of attempts has been
+reached. This way the server can defend better against
+brute-force attempts to crack a user account and its
+password.
+When limiting the maximum authentication attempts, be
+aware that public key authentication (see below) can also
+eat up your number of attempts. If you want to enforce
+the SSH client (or SCP) to use password-based
+authentication, use the related options on the command
+line.
+
+ssh -o PreferredAuthentications=password
+-o PubkeyAuthentication=no
+username@system
+
+Public key authentication
+Instead of using a normal password-based login, a better
+way is using public key authentication. Keys are
+considered much safer and less prone to brute-force
+attacks. Disable PasswordAuthentication to force users
+using keys.
+
+PubkeyAuthentication yes
+PasswordAuthentication no
+
+Refer to the article Using SSH keys instead of passwords,
+to set up key-based authentication.
+
+Disable root login
+It is best practice not to log in as the root user. Use a
+normal user account to initiate your connection instead,
+together with sudo. Direct root logins may result in bad
+accountability of the actions performed by this user
+
+account.
+
+PermitRootLogin no
+
+Newer versions of OpenSSH also support the value
+without-password. This value refers to methods like
+public key authentication. If your installation comes with
+this value, there is no reason to change it.
+
+Set SSH protocol
+If you are running an older system, version 1 of the SSH
+protocol might still be available. This version has
+weaknesses and should no longer be used. Since version
+7.0 of OpenSSH, protocol 1 is automatically disabled
+during compile time. If your version is older than that,
+enforce the protocol version:
+
+Protocol 2
+
+Usage of AllowUsers and DenyUsers
+When not all users should have access to the system,
+limit the number of people who can actually log in. One
+way is to create a group (e.g. sshusers) and add people
+to this group. Next set the AllowGroups option to define
+that only these users can log in.
+Other possibilities include to only allow a few users with
+the AllowUsers, or specifically deny users and groups
+with the DenyUsers, or DenyGroups. Whitelisting
+access, using the ‘default denyʼ principle, is usually
+better. So when possible, use the AllowUsers or
+AllowGroups option.
+Good to know: SSH applies the following order to
+determine if one can log in: DenyUsers, AllowUsers,
+DenyGroups, finally AllowGroups.
+
+Use HashKnownHosts
+Each time the SSH client connects to a server, it will
+store a related signature (a key) of the server. This
+information is stored in a file with the
+name known_hosts. The known_hosts file itself is
+available in the .ssh subdirectory of the related user (on
+the client). In the case the signature of the server
+changes, SSH will protect the user by notifying about
+this chance. This option is useful but also has a risk.
+Previously it was common to store the hostname related
+to the specific host key. This made it easy for worms and
+other malicious scripts to use this information and
+spread to other systems, once they had a single system
+compromised. To counter this, the HashKnownHosts will
+hash each host, so itʼs not readable anymore. While
+being unreadable for the human eye, it still allows SSH to
+check for the next time you connect to the same system,
+as the results in the same hash.
+Example output:
+
+|1|XV5CFMH8LLIQPq7PxdBhGX7I9PA=|VKNLdODs
+QlJ/j4cvTZncqs9vgh0= ecdsa-sha2-nistp256
+AAAAE2VjZHNhLX….dJ/RzzZLH8Hs0UgroC0=
+
+Restrict allowable commands
+OpenSSH allows restricting the commands that a user
+can run via the command option. This is placed in the
+authorized_keys file, together with the allowable
+command and other options.
+
+command="ps",no-agent-forwarding,no-portforwarding,no-x11-forwarding, TYPE_OF_KEY
+KEY COMMENT
+
+In the example above, replace the TYPE_OF_KEY, KEY,
+
+and COMMENT fields. The values that are to be used are
+similar to when using public key authentication.
+
+Additional restrictions
+Configure your firewall
+Besides adjusting the SSH configuration, consider also
+limiting access by using traffic filtering. A local firewall
+like iptables or nftables can be used to restrict access to
+only allowed systems. Restrict access by only allowing
+those IP addresses that are trusted.
+
+Use a jump server
+Bigger environments typically restrict access by using a
+jump server or jump host. You may be familiar with them
+with other names like stepping stone server or bastion
+host. They are then the only systems within the network
+that are configured to allow access to other systems.
+That means if you want to do system administration, you
+always connect first to the jump server. From there you
+will be connecting with the target system. A great
+combination with the previous tip to limit access with
+firewalling.
+
+OpenSSH client security
+settings
+As there are many SSH clients available, it would be
+impossible to cover them all in this article. Instead, we
+will have a look at the OpenSSH client tool.
+
+Client configuration
+The OpenSSH client has three ways to be configured.
+They are processed in order and checked for every
+available configuration setting. The first match wins.
+
+r. Options provided via the command-line
+s. Configuration file in the home directory
+(~/.ssh/config)
+u. Configuration file for all users
+(/etc/ssh/ssh_config)
+Letʼs say there is a setting named A. A is configured
+system-wide (option 3) with the value of ‘Trueʼ. User
+michael has it configured (option 2) being ‘Falseʼ. In that
+case, the latter would win. The reason is that it is
+considered before the system-wide configuration.
+
+See the default and active client settings
+Remember the trick to see the settings for the server
+(sshd -T)? The client has a similar one, although with a
+different character.
+
+ssh -G abc
+
+The ‘abcʼ in this example is just a random hostname. Ok,
+it is not really that random. You can use anything you
+want, including a real hostname. The client can use Host
+and Match blocks to customize the configuration to a
+group of systems or an individual system. As the host
+‘abcʼ does not exist, that means the default settings will
+be parsed.
+
+SSH settings for a single system
+Letʼs say we have a system with the name secureserver.
+Instead of running on port 22, it accepts SSH
+connections on port 2222. Instead of using -p on the
+command line each time, we can add a Host block to our
+configuration file. So if you want to do this for your user,
+create the config file in your home directory, below the
+.ssh directory (so /home/username/.ssh/config).
+Next step is creating a block and define the related
+
+settings that you want to use.
+Host secureserver
+Hostname hostname.example.org
+User mynickname
+Port 2222
+MACs hmac-sha2-512
+KexAlgorithms curve25519-sha256@libs
+sh.org
+
+Indenting with spaces is not required. I would still advice
+to do it, so you see which settings belong to what host
+definition.
+One question remains: What settings should you use in
+your client configuration file?
+I suggest applying changes that make your daily work
+easier. So if you prefer security, set strong defaults. If a
+particular host is using a different SSH port, creating a
+Host block and overrule it that way. Regarding
+KexAlgorithms, use the newer algorithms that are
+available. This strongly depends on OpenSSH version on
+the other systems. If you have fairly new OpenSSH
+versions on the server, then the curve25519 is a good
+option. It is a high-speed elliptic-curve that is considered
+secure (at this moment).
+
+Tools for SSH security
+While it is good to manually harden a system, software
+and the related configurations can change over time. For
+that reason, it is helpful to perform a regular security
+scan.
+
+Lynis
+This open source security tool is an allrounder when it
+comes to testing the security of your Linux system. From
+the bootloader to your web server, it will check as much
+
+as it can. It is free to use and written in shell script. Lynis
+runs on the system itself, so it can look both in the
+configuration files and the actually loaded configuration.
+It includes several tests focused on OpenSSH and its
+configuration, including security-related settings.
+Findings or possible improvements are displayed on the
+screen, so you can directly get into action and start
+hardening your system.
+Download the tool via GitHub or from the website. Never
+used the tool before, then use the Get Started guide.
+
+ssh-audit
+Although slightly outdated, the ssh-audit tool is a great
+one to have in your toolbox. Instead of testing on the
+host itself, it can connect to an SSH server via the
+network. It performs its testing on the selected target
+and looks at the responses it receives. Based on these
+responses it can learn about the system and the SSH
+server. It even knows about particular vulnerabilities and
+can warn you about them. Download the tool via GitHub
+and give it a spin.
+See the Linux Security Expert category SSH
+configuration scanners for other alternatives.
+
+Resources
+Read the man page
+A good resource for SSH configuration settings is the
+man page. While this sounds like an easy tip, it is actually
+useful to know the man page is strong and wellmaintained. With all the minor differences between
+releases, you should never assume what a setting does.
+Instead, read about the setting and see if it has recent
+additions. Your configuration of two years ago might
+already be outdated. Combine this knowledge with the
+
+

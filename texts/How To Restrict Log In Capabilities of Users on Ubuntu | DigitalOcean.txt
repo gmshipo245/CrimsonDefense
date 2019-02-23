@@ -1,0 +1,204 @@
+f.) DigitalOcean
+
+How To Restrict Log In Capabilities of Users on
+Ubuntu
+
+Status: Deprecated
+
+This article covers a version of Ubuntu that is no longer supported. If you are currently operate a
+server running Ubuntu 12.04, we highly recommend upgrading or migrating to a supported
+
+version of Ubuntu:
+
+0 Upgrade to Ubuntu 14.04.
+
+ 
+
+0 Upgrade from Ubuntu 14.04 to Ubuntu 16.04
+
+0 Migrate the server data to a supported version
+
+Reason: Ubuntu 12.04 reached end of life (EOL) on April 28, 2017 and no longer receives security
+
+patches or updates. This guide is no longer maintained.
+
+See Instead:
+
+This guide might still be useful as a reference, but may not work on other Ubuntu releases. If
+available, we strongly recommend using a guide written for the version of Ubuntu you are using.
+
+You can use the search functionality at the top of the page to find a more recentversion.
+
+Introduction
+
+A fundamental part of system administration is configuring and managing users and groups.
+Part of this task involves monitoring the log in capabilities of all system entities.
+
+In this guide, we will introduce the basic ideas behind user management and authentication
+logging.
+
+We will be exploring these concepts on an Ubuntu12.04 VPS, but you can follow along on
+any up—to—date Linux distribution.
+
+We said in the previous section that some of the users on your server may be associated
+
+with services, and are not intended to be used as regular accounts.
+
+In this section, we will discuss how to restrict the login capabilities of these users in a
+number of ways.
+
+How To Restrict Access With /etc/passwd
+
+One method of restricting the login capabilities is to set the account's login shell to a
+special value.
+
+An example of this is the "messagebus" user in the "/etc/passwd" file:
+
+less /etc/passwd | grep messagebus
+
+messagebuszx:102:104::/var/run/dbus:/bin/false
+
+The final value is the shell or the command that is run when the login is successful. In this
+case, the value is set to "/bin/false".
+
+If we try to log in to the messagebus user as root, we will see that nothing happens. We are
+not switched to the new user:
+
+sudo su messagebus
+
+Let's try to log into the "sshd" user:
+
+sudo su sshd
+
+This account is currently not available.
+
+We get this informative message because the shell for sshd is set to "/usr/sbin/nologin":
+
+less /etc/passwd | grep sshd
+
+sshd:x:lO3:65534::/var/run/sshd:/usr/sbin/nologin
+
+So, how do you restrict a user's log in using these methods?
+
+We can use the "usermod" tool to change the shell from a legitimate shell, to one of these
+dummy values:
+
+sudo usermod —s /usr/sbin/nologin username
+
+How To Restrict Access With /etc/shadow
+
+Another, similar method of restricting access is to use the "/etc/shadow" file. This file
+contains the hashed password values of every user on the system.
+
+You can see the hashed passwords by typing:
+
+sudo less /etc/shadow
+
+root:$6$r79Dod3Y$3hi3lepGEQwaQGEss4ueNNPkoUque3SwyAacaxl.ngqlr9i4melVlz6Ni
+
+daemon:*:15455:0:99999:7:::
+bin:*:15455:0:99999:7:::
+sys:*:15455:0:99999:7:::
+
+sync:*:15455:0:99999:7:::
+games:*:15455:0:99999:7:::
+man:*:15455:0:99999:7:::
+
+The second field (the one starting with "$6$r79Dod3Y#3..." in the first line) contains the
+hashed password value.
+
+As you can see, the system accounts have an asterisk (*) instead of a complex hash value.
+Accounts with an asterisk in the second field have not had a password set and are not able
+to authenticate by password until this changes.
+
+We can disable a password value (in effect, making an account with a password equivalent
+to the asterisk value), by preceding the hash value with an exclamation point (l).
+
+Two tools can do this by "locking" the specified account.
+
+The passwd command can be locked with the "—|" flag and unlocked with the "—u" flag:
+
+sudo passwd —l username
+
+sudo less /etc/shadow | grep username
+
+username:l$6$vaJ3oFe$5GSh2aU2BDcpdijeNth0zTgyRUlZ6x4dn77mFE/vaondl9m7okX44j
+
+As you can see, the hashed password is retained, but made invalid by placing a "l" in front
+of it.
+
+The account can be unlocked again by typing:
+
+sudo passwd —u username
+
+Equivalent operations are available using the "usermod" command. The corresponding
+flags are "—L" for locking, and "—U" for unlocking:
+
+sudo usermod —L username
+
+sudo usermod —U username
+
+Note: while this method of restricting access will function correctly for all password-based
+logins, methods of logging in without a password (for example, with ssh keys) will still
+remain available.
+
+Considering using another method of locking down the account if these methods are
+configured.
+
+How To Restrict Access With /etc/nologin
+
+There may be situations in extreme cases where you need to disable all account logins,
+other than root.
+
+This could be because of in—depth maintenance, or because one or more of your user
+accounts has been compromised.
+
+In any case, this can be easily accomplished simply by creating a file at "/etc/nologin":
+
+sudo touch /etc/nologin
+
+This will prevent any account from logging in that does not have superuser privileges.
+
+With an empty "/etc/nologin" file, thisjust dumps the user back to their local shell without
+any explanation.
+
+What is really happening is that the contents of the file are returned to the user. If we add a
+message, users will receive an explanation for the login failure:
+
+sudo sh —c 'echo "Planned maintenance. Log in capabilities will be restored
+at 1545 UTC" > /etc/nologin'
+
+Now when we try to log in with a password, we will receive the message we set up:
+
+ssh user@host
+
+user@host's password:
+Planned maintenance. Log in capabilities will be restored at 1545 UTC
+
+Connection closed by host
+
+Root users can still log in normally. Simply remove the "/etc/nologin" file to reverse the login
+restriction:
+
+sudo rm /etc/nologin
+
+Conclusion
+
+User authentication on Linux is a relatively flexible area of system management. There are
+many ways of accomplishing the same objective with very simple tools.
+
+You should now know how to restrict usage through various methods.
+In the next section, we will discuss how to monitor user logins.
+
+Authentication, Part1 — How To View System Users in Linux on Ubuntu
+
+ 
+
+Authentication, Part 2 — How To Restrict Log In Capabilities of Users on Ubuntu
+
+Authentication, Part 3 — How To Monitor System Authentication Logs on Ubuntu
+
+ 
+
+By: Justin Ellingwood
+
