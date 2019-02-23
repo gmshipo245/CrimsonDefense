@@ -1,0 +1,18 @@
+Important Stuff
+* ssh
+	kill ssh:
+	ps ax | grep ssh
+	search for username 
+	kill pid of that process
+
+	send ssh key:
+	ssh-copy-id username@remote_host
+* root password
+o remove x from root line in /etc/passwd
+o su root
+o sudo passwd root
+o Input new password
+* lynis
+o sudo apt-get install lynis
+
+
